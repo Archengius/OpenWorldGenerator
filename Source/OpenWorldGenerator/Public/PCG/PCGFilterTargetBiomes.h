@@ -7,6 +7,7 @@
 #include "PCGPin.h"
 #include "PCGFilterTargetBiomes.generated.h"
 
+class UOWGBiome;
 struct FCachedChunkBiomeData;
 
 /**
@@ -42,7 +43,7 @@ class FPCGFilterTargetBiomesContext : public FPCGContext
 {
 public:
 	TSharedPtr<FCachedChunkBiomeData> CachedChunkBiomeData;
-	TArray<class UOWGBiome*> TargetBiomes;
+	TArray<TWeakObjectPtr<UOWGBiome>> TargetBiomes;
 };
 
 class FPCGFilterTargetBiomesElement : public IPCGElement

@@ -40,7 +40,7 @@ private:
 	static void GenerateLandscapeLODInternal( UE::Geometry::FDynamicMesh3& OutLandscapeMesh, int32 LODIndex, const FChunkData2D& HeightData, const FChunkData2D& BiomeMap, const FChunkData2D& NormalData );
 protected:
 	/** The chunk owning this material manager */
-	AOWGChunk* OwnerChunk{};
+	TObjectPtr<AOWGChunk> OwnerChunk{};
 
 	/** Meshes used for rendering landscape at various distances, mapped to their current changelist number */
 	TArray<TPair<UE::Geometry::FDynamicMesh3, int32>> LandscapeLODMeshes;

@@ -77,7 +77,7 @@ FChunkLandscapeGrassData::FChunkLandscapeGrassData() : ChunkUnloadedCounter( Mak
 
 void FChunkLandscapeGrassData::AddReferencedObjects( FReferenceCollector& ReferenceCollector )
 {
-	for ( TPair<UOWGChunkLandscapeLayer*, TArray<FChunkGrassMeshComponentData>>& Pair : GrassStaticMeshComponents )
+	for ( TPair<TObjectPtr<UOWGChunkLandscapeLayer>, TArray<FChunkGrassMeshComponentData>>& Pair : GrassStaticMeshComponents )
 	{
 		ReferenceCollector.AddStableReference( &Pair.Key );
 		for ( FChunkGrassMeshComponentData& ComponentData : Pair.Value )
@@ -336,7 +336,7 @@ void UChunkLandscapeGrassSubsystem::CleanupStaleChunkGrass()
 			FChunkLandscapeGrassData ChunkLandscapeGrassData;
 			PerChunkComponents.RemoveAndCopyValue( ChunkCoord, ChunkLandscapeGrassData );
 
-			for ( TPair<UOWGChunkLandscapeLayer*, TArray<FChunkGrassMeshComponentData>>& Pair : ChunkLandscapeGrassData.GrassStaticMeshComponents )
+			for ( TPair<TObjectPtr<UOWGChunkLandscapeLayer>, TArray<FChunkGrassMeshComponentData>>& Pair : ChunkLandscapeGrassData.GrassStaticMeshComponents )
 			{
 				for ( FChunkGrassMeshComponentData& MeshComponentData : Pair.Value )
 				{
@@ -586,12 +586,6 @@ void FChunkLandscapeGrassBuildTask::DoWork()
 		TArray<float> InstanceCustomDataDummy;
 		UGrassInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, InstanceCustomDataDummy, 0, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, OutOcclusionLayerNum, DesiredInstancesPerLeaf, false);
 
-		InstanceData.Reset(NumInstances);
-		for (const FMatrix& Transform : InstanceTransforms)
-		{
-			InstanceData.Emplace(Transform);
-		}
-		
 		// in-place sort the instances and generate the sorted instance data
 		for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumInstances; FirstUnfixedIndex++)
 		{
@@ -601,7 +595,6 @@ void FChunkLandscapeGrassBuildTask::DoWork()
 			{
 				check(LoadFrom > FirstUnfixedIndex);
 				InstanceBuffer.SwapInstance(FirstUnfixedIndex, LoadFrom);
-				InstanceData.Swap(FirstUnfixedIndex, LoadFrom);
 
 				int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
 				check(SwapGoesTo > FirstUnfixedIndex);
@@ -630,15 +623,7 @@ void FChunkLandscapeGrassBuildTask::CompleteOnGameThread( FChunkGrassMeshCompone
 				SCOPE_CYCLE_COUNTER( STAT_ChunkLandscapeGrassAcceptPrebuiltTree );
 				UGrassInstancedStaticMeshComponent* GrassMeshComponent = FinishedRebuildData->StaticMeshComponent;
 
-				if ( !GrassMeshComponent->PerInstanceRenderData.IsValid() )
-				{
-					GrassMeshComponent->InitPerInstanceRenderData(true, &InstanceBuffer, false );
-				}
-				else
-				{
-					GrassMeshComponent->PerInstanceRenderData->UpdateFromPreallocatedData( InstanceBuffer );
-				}
-				GrassMeshComponent->AcceptPrebuiltTree( InstanceData, ClusterTree, OutOcclusionLayerNum, NumBuiltInstances );
+				GrassMeshComponent->AcceptPrebuiltTree(ClusterTree, OutOcclusionLayerNum, NumBuiltInstances, &InstanceBuffer);
 			}
 			FinishedRebuildData->ActiveChangelist = ChunkGrassSourceData->ChangelistNumber;
 		}

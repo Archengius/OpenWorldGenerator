@@ -90,5 +90,5 @@ private:
 
 	/** A Map of loaded chunks that have been deserialized from the container */
 	UPROPERTY()
-	TMap<FChunkCoord, AOWGChunk*> LoadedChunks;
+	TMap<FChunkCoord, TObjectPtr<AOWGChunk>> LoadedChunks;
 };

@@ -433,11 +433,11 @@ protected:
 protected:
 	/** Mesh component for the landscape surface mesh (primary terrain floor mesh) */
 	UPROPERTY( VisibleInstanceOnly, Transient, Category = "Chunk" )
-	UDynamicMeshComponent* LandscapeMeshComponent;
+	TObjectPtr<UDynamicMeshComponent> LandscapeMeshComponent;
 
 	/** Collision component for this chunk */
 	UPROPERTY( VisibleAnywhere, Category = "Chunk" )
-	UChunkHeightFieldCollisionComponent* HeightFieldCollisionComponent;
+	TObjectPtr<UChunkHeightFieldCollisionComponent> HeightFieldCollisionComponent;
 	
 public:
 	/** Root component that can be used to attach other components to this actor */
@@ -455,7 +455,7 @@ protected:
 	friend class FChunkLandscapeMaterialManager;
 
 	/** Noise data for each noise identifier generated for this chunk */
-	TMap<UOWGNoiseIdentifier*, FChunkData2D> NoiseData;
+	TMap<TObjectPtr<UOWGNoiseIdentifier>, FChunkData2D> NoiseData;
 
 	/** Surface data maps used during chunk generation */
 	TMap<FName, FChunkData2D> ChunkData2D;
@@ -478,7 +478,7 @@ protected:
 public:
 	/** PCGComponent for this actor. Never saved, created in BeginPlay and is Transient */
 	UPROPERTY( VisibleInstanceOnly, Transient, BlueprintReadOnly, Category = "PCG" )
-	UPCGComponent* PCGComponent;
+	TObjectPtr<UPCGComponent> PCGComponent;
 private:
 	/** World coordinate of this chunk. Populated on chunk creation/load and not serialized. */
 	UPROPERTY( Transient, Replicated )
@@ -486,7 +486,7 @@ private:
 
 	/** Region container that owns this chunk */
 	UPROPERTY( Transient )
-	UOWGRegionContainer* OwnerContainer;
+	TObjectPtr<UOWGRegionContainer> OwnerContainer;
 
 public:
 	/** Number of chunk LODs we should support */
@@ -514,7 +514,7 @@ protected:
 
 	/** Instance of the currently active chunk generator */
 	UPROPERTY()
-	UOWGChunkGenerator* CurrentGeneratorInstance;
+	TObjectPtr<UOWGChunkGenerator> CurrentGeneratorInstance;
 
 	/** Index of the current chunk LOD */
 	int32 CurrentChunkLOD{INDEX_NONE};
@@ -523,7 +523,7 @@ protected:
 
 	/** Cached world generator configuration from subsystem object */
 	UPROPERTY( Transient )
-	UOWGWorldGeneratorConfiguration* WorldGeneratorDefinition;
+	TObjectPtr<UOWGWorldGeneratorConfiguration> WorldGeneratorDefinition;
 	/** Cached world seed of the world the chunk is in */
 	UPROPERTY( Transient )
 	int32 WorldSeed;

@@ -48,7 +48,7 @@ private:
 
 UChunkHeightFieldCollisionComponent::UChunkHeightFieldCollisionComponent()
 {
-	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	UPrimitiveComponent::SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	SetGenerateOverlapEvents(false);
 
 	CastShadow = false;
@@ -92,7 +92,7 @@ void UChunkHeightFieldCollisionComponent::CreateCollisionData()
 	TArray<Chaos::FMaterialHandle> UsedPhysicalMaterials;
 	for ( const UOWGChunkLandscapeLayer* LandscapeLayer : Chunk->WeightMapDescriptor.GetAllLayers() )
 	{
-		UPhysicalMaterial* PhysicalMaterial = LandscapeLayer->PhysicalMaterial.Get() ? LandscapeLayer->PhysicalMaterial.Get() : DefaultPhysicsMaterial;
+		const TObjectPtr<UPhysicalMaterial> PhysicalMaterial = LandscapeLayer->PhysicalMaterial.Get() ? LandscapeLayer->PhysicalMaterial : DefaultPhysicsMaterial;
 		UsedPhysicalMaterials.Add( PhysicalMaterial->GetPhysicsMaterial() );
 	}
 	
@@ -112,8 +112,8 @@ void UChunkHeightFieldCollisionComponent::CreateCollisionData()
 		}
 	}
 
-	HeightFieldRef = TRefCountPtr( new FChunkHeightFieldGeometryRef );
-	HeightFieldRef->HeightField = MakeUnique<Chaos::FHeightField>( MoveTemp( HeightFieldHeights ), MoveTemp( HeightFieldMaterials ), SurfaceResolutionXY, SurfaceResolutionXY, HeightFieldScale );
+	HeightFieldRef = MakeRefCount<FChunkHeightFieldGeometryRef>();
+	HeightFieldRef->HeightField = MakeRefCount<Chaos::FHeightField>( MoveTemp( HeightFieldHeights ), MoveTemp( HeightFieldMaterials ), SurfaceResolutionXY, SurfaceResolutionXY, HeightFieldScale );
 	HeightFieldRef->UsedChaosMaterials = MoveTemp( UsedPhysicalMaterials );
 
 	// Height field needs to be adjusted to the middle of the chunk since it is originally in the corner of it
@@ -151,14 +151,14 @@ void UChunkHeightFieldCollisionComponent::PartialUpdateCollisionData( int32 Star
 			const bool bNeedsShapeUpdate = PartialUpdateCollisionData_AssumesLocked( StartX, StartY, EndX, EndY );
 
 			// Rebuild geometry to update local bounds, and update in acceleration structure.
-			const Chaos::FImplicitObjectUnion& Union = ActorHandle->GetGameThreadAPI().Geometry()->GetObjectChecked<Chaos::FImplicitObjectUnion>();
-			TArray<TUniquePtr<Chaos::FImplicitObject>> NewGeometry;
-			for (const TUniquePtr<Chaos::FImplicitObject>& Object : Union.GetObjects())
+			const Chaos::FImplicitObjectUnion& Union = ActorHandle->GetGameThreadAPI().GetGeometry()->GetObjectChecked<Chaos::FImplicitObjectUnion>();
+			Chaos::FImplicitObjectsArray NewGeometry;
+			for (const Chaos::FImplicitObjectPtr& Object : Union.GetObjects())
 			{
 				const Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>& TransformedHeightField = Object->GetObjectChecked<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>();
-				NewGeometry.Emplace(MakeUnique<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>(TransformedHeightField.Object(), TransformedHeightField.GetTransform()));
+				NewGeometry.Emplace(MakeImplicitObjectPtr<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>(TransformedHeightField.GetGeometry(), TransformedHeightField.GetTransform()));
 			}
-			ActorHandle->GetGameThreadAPI().SetGeometry(MakeUnique<Chaos::FImplicitObjectUnion>( MoveTemp(NewGeometry)) );
+			ActorHandle->GetGameThreadAPI().SetGeometry(MakeImplicitObjectPtr<Chaos::FImplicitObjectUnion>( MoveTemp(NewGeometry)) );
 
 			// Rebuild shape if we need to update the materials used for it
 			if ( bNeedsShapeUpdate )
@@ -262,13 +262,13 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 		Chaos::FRigidBodyHandle_External& Body_External = PhysHandle->GetGameThreadAPI();
 
 		Chaos::FShapesArray ShapeArray;
-		TArray<TUniquePtr<Chaos::FImplicitObject>> Geometry;
+		TArray<Chaos::FImplicitObjectPtr> Geometry;
 
 		// First add complex geometry
 		// We need to offset the height field by the half of the chunk because right now the chunk landscape geometry is not centered, and instead starts at the bottom of the chunk, going up
-		TUniquePtr<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>> ChaosHeightFieldShapeData = MakeUnique<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>(
-			MakeSerializable( HeightFieldRef->HeightField ), Chaos::FRigidTransform3( FTransform( HeightFieldRef->LocalOffset ) ) );
-		TUniquePtr<Chaos::FPerShapeData> NewShape = Chaos::FPerShapeData::CreatePerShapeData( ShapeArray.Num(), MakeSerializable( ChaosHeightFieldShapeData ) );
+		Chaos::FImplicitObjectPtr ChaosHeightFieldShapeData = MakeImplicitObjectPtr<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>(
+			Chaos::FImplicitObjectPtr(HeightFieldRef->HeightField), Chaos::FRigidTransform3( FTransform( HeightFieldRef->LocalOffset ) ) );
+		TUniquePtr<Chaos::FPerShapeData> NewShape = Chaos::FShapeInstance::Make( ShapeArray.Num(), ChaosHeightFieldShapeData );
 
 		// Setup filtering
 		FCollisionFilterData QueryFilterData, SimFilterData;
@@ -283,12 +283,12 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 		NewShape->SetSimData( SimFilterData );
 		NewShape->SetMaterials( HeightFieldRef->UsedChaosMaterials );
 
-		Geometry.Emplace( MoveTemp( ChaosHeightFieldShapeData ) );
+		Geometry.Emplace( ChaosHeightFieldShapeData );
 		ShapeArray.Emplace( MoveTemp( NewShape ) );
 
 		// Push the shapes to the actor
 		// We always wrap it into the object union because the code in PartialUpdateCollisionData_AssumesLocked assumes it will always be the object union
-		Body_External.SetGeometry( MakeUnique<Chaos::FImplicitObjectUnion>( MoveTemp(Geometry) ) );
+		Body_External.SetGeometry( MakeImplicitObjectPtr<Chaos::FImplicitObjectUnion>( MoveTemp(Geometry) ) );
 
 		// Construct Shape Bounds
 		for ( const TUniquePtr<Chaos::FPerShapeData>& Shape : ShapeArray)
@@ -296,7 +296,7 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 			Chaos::FRigidTransform3 WorldTransform = Chaos::FRigidTransform3( Body_External.X(), Body_External.R() );
 			Shape->UpdateShapeBounds( WorldTransform );
 		}
-		Body_External.SetShapesArray( MoveTemp(ShapeArray) );
+		Body_External.MergeShapesArray( MoveTemp(ShapeArray) );
 
 		// Push the actor to the scene
 		FPhysScene* PhysScene = GetWorld()->GetPhysicsScene();
@@ -370,7 +370,7 @@ bool UChunkHeightFieldCollisionComponent::DoCustomNavigableGeometryExport(FNavig
 	if( HeightFieldRef.IsValid() && HeightFieldRef->HeightField )
 	{
 		const FTransform HFToW = GetComponentTransform();
-		GeomExport.ExportChaosHeightField( HeightFieldRef->HeightField.Get(), HFToW );
+		GeomExport.ExportChaosHeightField( HeightFieldRef->HeightField.GetReference(), HFToW );
 	}
 	return false;
 }
@@ -397,7 +397,7 @@ ENavDataGatheringMode UChunkHeightFieldCollisionComponent::GetGeometryGatheringM
 
 void UChunkHeightFieldCollisionComponent::PrepareGeometryExportSync()
 {
-	if( HeightFieldRef.IsValid() && HeightFieldRef->HeightField.Get() && CachedHeightFieldSamples.IsEmpty() )
+	if( HeightFieldRef.IsValid() && HeightFieldRef->HeightField && CachedHeightFieldSamples.IsEmpty() )
 	{
 		HeightfieldRowsCount = HeightFieldRef->HeightField->GetNumRows();
 		HeightfieldColumnsCount = HeightFieldRef->HeightField->GetNumCols();
@@ -427,7 +427,7 @@ FPrimitiveSceneProxy* UChunkHeightFieldCollisionComponent::CreateSceneProxy()
 {
 	if ( HeightFieldRef.IsValid() && HeightFieldRef->HeightField.IsValid() )
 	{
-		const Chaos::FHeightField* LocalHeightField = HeightFieldRef->HeightField.Get();
+		const Chaos::FHeightField* LocalHeightField = HeightFieldRef->HeightField.GetReference();
 		const FLinearColor WireframeColor = FLinearColor::Green;
 		
 		if (LocalHeightField != nullptr)

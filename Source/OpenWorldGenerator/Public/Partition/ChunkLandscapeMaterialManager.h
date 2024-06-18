@@ -46,11 +46,11 @@ protected:
 	FChunkLandscapeMaterialManager* ParentManager;
 
 	/** Dynamic material instances generated for the landscape (per biome) */
-	UMaterialInstanceDynamic* MaterialInstance{};
+	TObjectPtr<UMaterialInstanceDynamic> MaterialInstance{};
 	/** Biome we are based on */
-	UOWGBiome* Biome;
+	TObjectPtr<UOWGBiome> Biome;
 
-	TMap<UOWGChunkLandscapeLayer*, FLandscapeLayerParameterData> LayerToBlendTextureNameAndChannelMaskParameters;
+	TMap<TObjectPtr<UOWGChunkLandscapeLayer>, FLandscapeLayerParameterData> LayerToBlendTextureNameAndChannelMaskParameters;
 };
 
 /** Holds landscape material instances */
@@ -70,13 +70,13 @@ protected:
 
 	friend class FChunkBiomeLandscapeMaterial; 
 	/** The chunk owning this material manager */
-	AOWGChunk* OwnerChunk{};
+	TObjectPtr<AOWGChunk> OwnerChunk{};
 
 	/** Texture holding the weight map data for the chunk. Textures are automatically added as needed to support new layers and dynamically updated */ 
-	TArray<UTexture2D*> WeightMapTextures;
+	TArray<TObjectPtr<UTexture2D>> WeightMapTextures;
 
 	TArray<FChunkBiomeLandscapeMaterial> PerBiomeMaterials;
 
 	/** Cached chunk texture manager */
-	UChunkTextureManager* ChunkTextureManager{};
+	TObjectPtr<UChunkTextureManager> ChunkTextureManager{};
 };

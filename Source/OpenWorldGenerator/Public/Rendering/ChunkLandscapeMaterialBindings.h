@@ -31,7 +31,7 @@ struct OPENWORLDGENERATOR_API FChunkLandscapeMaterialLayerInfo
 
 	/** Name of the layer this material function maps to */
 	UPROPERTY( EditAnywhere, Category = "Landscape Material" )
-	UOWGChunkLandscapeLayer* LandscapeLayer;
+	TObjectPtr<class UOWGChunkLandscapeLayer> LandscapeLayer;
 };
 
 /** Data needed to bind the landscape material to the dynamic chunk inputs */

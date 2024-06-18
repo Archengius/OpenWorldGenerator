@@ -19,7 +19,7 @@ namespace RegionFileFormatConstants
 
 AOWGChunk* UOWGRegionContainer::FindChunk( FChunkCoord ChunkCoord ) const
 {
-	if ( AOWGChunk* const* ExistingLoadedChunk = LoadedChunks.Find( ChunkCoord ) )
+	if ( TObjectPtr<AOWGChunk> const* ExistingLoadedChunk = LoadedChunks.Find( ChunkCoord ) )
 	{
 		check( IsValid( *ExistingLoadedChunk ) );
 		return *ExistingLoadedChunk;

@@ -63,7 +63,7 @@ protected:
 protected:
 	/** A map of loaded regions in the world */
 	UPROPERTY( Transient )
-	TMap<FChunkCoord, UOWGRegionContainer*> LoadedRegions;
+	TMap<FChunkCoord, TObjectPtr<UOWGRegionContainer>> LoadedRegions;
 
 	/** A cache of region coordinate to the whenever it's file exists or not */
 	mutable TMap<FChunkCoord, TArray<FChunkCoord>> UnloadedRegionExistenceCache;
@@ -74,7 +74,7 @@ protected:
 
 	/** Chunks that are currently being generated */
 	UPROPERTY( Transient )
-	TArray<AOWGChunk*> ChunksPendingGeneration;
+	TArray<TObjectPtr<AOWGChunk>> ChunksPendingGeneration;
 
 	/** Folder where region container files will be saved, or loaded from */
 	FString RegionFolderLocation;

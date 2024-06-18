@@ -79,7 +79,10 @@ FPCGContext* FPCGFilterTargetBiomesElement::Initialize( const FPCGDataCollection
 		}
 		if ( OwnerChunkGenerator )
 		{
-			Context->TargetBiomes = OwnerChunkGenerator->TargetBiomes;
+			for (UOWGBiome* Biome : OwnerChunkGenerator->TargetBiomes)
+			{
+				Context->TargetBiomes.Add(Biome);	
+			}
 		}
 	}
 
@@ -107,9 +110,12 @@ bool FPCGFilterTargetBiomesElement::ExecuteInternal( FPCGContext* Context ) cons
 	}
 
 	TSet<FBiomePaletteIndex> FilterValidIndices;
-	for ( UOWGBiome* Biome : CastContext->TargetBiomes )
+	for ( TWeakObjectPtr<UOWGBiome>& WeakBiome : CastContext->TargetBiomes )
 	{
-		FilterValidIndices.Add( CastContext->CachedChunkBiomeData->BiomePalette.FindBiomeIndex( Biome ) );
+		if (UOWGBiome* Biome = WeakBiome.Get())
+		{
+			FilterValidIndices.Add( CastContext->CachedChunkBiomeData->BiomePalette.FindBiomeIndex( Biome ) );
+		}
 	}
 
 	for (const FPCGTaggedData& Input : Inputs)
@@ -145,13 +151,16 @@ bool FPCGFilterTargetBiomesElement::ExecuteInternal( FPCGContext* Context ) cons
 		// Register attributes and add them to the array mapping to our biome palette index
 		if ( bAddBiomeMetadataToPoints && FilteredMetadata )
 		{
-			for ( UOWGBiome* Biome : CastContext->TargetBiomes )
+			for ( const TWeakObjectPtr<UOWGBiome>& WeakBiome : CastContext->TargetBiomes )
 			{
-				if ( Biome->PCGMetadataAttributeName != NAME_None )
+				if (UOWGBiome* Biome = WeakBiome.Get())
 				{
-					// We override the parent value because we do not want parent values to carry over through filter biomes
-					FPCGMetadataAttribute<bool>* BoolAttribute = FilteredMetadata->CreateAttribute<bool>( Biome->PCGMetadataAttributeName, false, false, true );
-					BiomeAttributeByIndex[ BiomePalette.FindBiomeIndex( Biome ) ] = BoolAttribute;
+					if ( Biome->PCGMetadataAttributeName != NAME_None )
+					{
+						// We override the parent value because we do not want parent values to carry over through filter biomes
+						FPCGMetadataAttribute<bool>* BoolAttribute = FilteredMetadata->CreateAttribute<bool>( Biome->PCGMetadataAttributeName, false, false, true );
+						BiomeAttributeByIndex[ BiomePalette.FindBiomeIndex( Biome ) ] = BoolAttribute;
+					}
 				}
 			}
 		}

@@ -19,12 +19,12 @@ class UOWGChunkLandscapeLayer;
 struct FChunkGrassMeshComponentData
 {
 	FChunkCoord OwnerChunkCoord{};
-	UOWGChunkLandscapeLayer* OwnerLandscapeLayer{};
+	TObjectPtr<UOWGChunkLandscapeLayer> OwnerLandscapeLayer{};
 	int32 GrassVarietyIndex{INDEX_NONE};
 	FOWGLandscapeGrassVariety GrassVariety{};
 	float DensityScale{1.0f};
 	int32 BaseHamiltonIndex{1};
-	UGrassInstancedStaticMeshComponent* StaticMeshComponent{};
+	TObjectPtr<UGrassInstancedStaticMeshComponent> StaticMeshComponent{};
 	int32 ActiveChangelist{INDEX_NONE};
 	int32 LastScheduledRebuildChangelist{INDEX_NONE};
 	float LastScheduledRebuildWorldSeconds{0.0f};
@@ -37,7 +37,7 @@ struct FChunkGrassMeshComponentData
 
 struct FChunkLandscapeGrassData
 {
-	TMap<UOWGChunkLandscapeLayer*, TArray<FChunkGrassMeshComponentData>> GrassStaticMeshComponents;
+	TMap<TObjectPtr<UOWGChunkLandscapeLayer>, TArray<FChunkGrassMeshComponentData>> GrassStaticMeshComponents;
 	TSharedRef<FThreadSafeCounter> ChunkUnloadedCounter;
 	float LastTimeUsed{};
 	
@@ -118,7 +118,6 @@ protected:
 
 	// Data we are building
 	int32 TotalInstances{0};
-	TArray<FInstancedStaticMeshInstanceData> InstanceData;
 	FStaticMeshInstanceData InstanceBuffer;
 	TArray<FClusterNode> ClusterTree;
 	int32 OutOcclusionLayerNum{0};

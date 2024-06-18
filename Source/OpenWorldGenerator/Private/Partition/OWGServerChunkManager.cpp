@@ -310,7 +310,7 @@ void UOWGServerChunkManager::UnregisterStreamingProvider( const TScriptInterface
 
 AOWGChunk* UOWGServerChunkManager::FindChunk( const FChunkCoord& ChunkCoord ) const
 {
-	if ( const UOWGRegionContainer* const* RegionContainer = LoadedRegions.Find( ChunkCoord.ToRegionCoord() ) )
+	if ( TObjectPtr<UOWGRegionContainer> const* RegionContainer = LoadedRegions.Find( ChunkCoord.ToRegionCoord() ) )
 	{
 		return (*RegionContainer)->FindChunk( ChunkCoord );
 	}
@@ -322,7 +322,7 @@ EChunkExists UOWGServerChunkManager::DoesChunkExistSync( const FChunkCoord& Chun
 	const FChunkCoord RegionCoord = ChunkCoord.ToRegionCoord();
 	
 	// Check if there is a loaded region container
-	if ( const UOWGRegionContainer* const* RegionContainer = LoadedRegions.Find(RegionCoord) )
+	if ( TObjectPtr<UOWGRegionContainer> const* RegionContainer = LoadedRegions.Find(RegionCoord) )
 	{
 		if ( (*RegionContainer)->ChunkExists( ChunkCoord ) )
 		{
@@ -381,7 +381,7 @@ AOWGChunk* UOWGServerChunkManager::LoadOrCreateChunk( const FChunkCoord& ChunkCo
 UOWGRegionContainer* UOWGServerChunkManager::LoadRegionContainerSync(const FChunkCoord& RegionCoord)
 {
 	// Attempt to find an existing container
-	if ( UOWGRegionContainer* const* ExistingContainer = LoadedRegions.Find( RegionCoord ) )
+	if ( TObjectPtr<UOWGRegionContainer> const* ExistingContainer = LoadedRegions.Find( RegionCoord ) )
 	{
 		return *ExistingContainer;
 	}
@@ -406,7 +406,7 @@ UOWGRegionContainer* UOWGServerChunkManager::LoadRegionContainerSync(const FChun
 UOWGRegionContainer* UOWGServerChunkManager::LoadOrCreateRegionContainerSync( const FChunkCoord& ChunkCoord )
 {
 	// Attempt to find an existing container
-	if ( UOWGRegionContainer* const* ExistingContainer = LoadedRegions.Find( ChunkCoord ) )
+	if ( TObjectPtr<UOWGRegionContainer> const* ExistingContainer = LoadedRegions.Find( ChunkCoord ) )
 	{
 		return *ExistingContainer;
 	}

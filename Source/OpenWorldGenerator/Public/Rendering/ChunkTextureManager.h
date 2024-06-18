@@ -38,7 +38,7 @@ protected:
 
 	/** Pooled weight map textures available to be re-claimed */
 	UPROPERTY( Transient )
-	TArray<UTexture2D*> PooledWeightMapTextures;
+	TArray<TObjectPtr<UTexture2D>> PooledWeightMapTextures;
 	
 	/** Counter for how many weight map textures we have created */
 	int32 SurfaceLayersTextureCounter{0};

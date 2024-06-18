@@ -13,11 +13,6 @@
 class UOWGRegionContainer;
 class AOWGChunk;
 
-/** Object flag used to prevent the object from being saved by the save system. RF_Dynamic is not set or read by the engine code so we can use it as we wish */
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
-static constexpr auto RF_SaveSystemTransient = RF_Dynamic;
-PRAGMA_ENABLE_DEPRECATION_WARNINGS
-
 DECLARE_LOG_CATEGORY_EXTERN( LogChunkSerialization, All, All );
 
 struct OPENWORLDGENERATOR_API FOpenWorldGeneratorVersion

@@ -13,7 +13,7 @@ class UPhysicalMaterial;
 struct FChunkHeightFieldGeometryRef : FRefCountedObject
 {
 	TArray<Chaos::FMaterialHandle> UsedChaosMaterials;
-	TUniquePtr<Chaos::FHeightField> HeightField;
+	TRefCountPtr<Chaos::FHeightField> HeightField;
 	FVector LocalOffset{}; // offset of the height field, in component local space
 };
 
@@ -67,7 +67,7 @@ protected:
 
 	/** Default physics material to use for the chunk when the chunk majority layer does not specify a correct physics material */
 	UPROPERTY( EditDefaultsOnly, Category = "Chunk" )
-	UPhysicalMaterial* DefaultPhysicsMaterial;
+	TObjectPtr<UPhysicalMaterial> DefaultPhysicsMaterial;
 
 	/** Cached PxHeightFieldSamples values for navmesh generation. Note that it's being used only if navigation octree is set up for lazy geometry exporting */
 	int32 HeightfieldRowsCount;

@@ -468,7 +468,7 @@ UObject* FChunkSerializationContext::CreateExport( FChunkObjectExport& ObjectExp
 int32 FChunkSerializationContext::WriteObject( UObject* Object )
 {
 	// Null/transient objects are serialized as index 0
-	if ( !IsValid( Object ) || Object->HasAnyFlags( RF_Transient | RF_SaveSystemTransient ) )
+	if ( !IsValid( Object ) || Object->HasAnyFlags( RF_Transient ) )
 	{
 		return 0;
 	}
