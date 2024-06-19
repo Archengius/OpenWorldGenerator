@@ -45,15 +45,15 @@ struct OPENWORLDGENERATOR_API FChunkLandscapeMetrics
 
 	/** Point with the minimum height, in world space */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Landscape Metrics" )
-	FVector MinimumHeightPoint{};
+	FVector MinimumHeightPoint{ForceInit};
 
 	/** Point with the maximum height, in world space */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Landscape Metrics" )
-	FVector MaximumHeightPoint{};
+	FVector MaximumHeightPoint{ForceInit};
 
 	/** Medium height (and middle point) across points in this metric */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Landscape Metrics" )
-	FVector MiddleHeightPoint{};
+	FVector MiddleHeightPoint{ForceInit};
 
 	/** Maximum steepness (metric of height difference) in the given region. This is normalized, to get absolute value multiply by MaximumSteepness from OWG settings */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Landscape Metrics" )

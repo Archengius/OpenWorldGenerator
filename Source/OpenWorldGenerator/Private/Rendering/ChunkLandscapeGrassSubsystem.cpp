@@ -155,7 +155,9 @@ void UChunkLandscapeGrassSubsystem::UpdateChunkGrass( const TArray<FVector>& InC
 	const UOpenWorldGeneratorSubsystem* OpenWorldGeneratorSubsystem = UOpenWorldGeneratorSubsystem::Get( GetWorld() );
 	if ( !OpenWorldGeneratorSubsystem ) return;
 
+	// Chunk manager will be null if OWG subsystem is not initialized for this world
 	const TScriptInterface<IOWGChunkManagerInterface> ChunkManager = OpenWorldGeneratorSubsystem->GetChunkManager();
+	if (!ChunkManager.GetObject()) return;
 
 	const float LandscapeGrassRenderDistance = CVarChunkGrassBuildDistance.GetValueOnGameThread() * CVarChunkGrassCullDistanceScale.GetValueOnGameThread();
 	const float LandscapeGrassDensityScale = CVarChunkGrassDensityScale.GetValueOnGameThread();
@@ -208,6 +210,18 @@ void UChunkLandscapeGrassSubsystem::UpdateChunkGrass( const TArray<FVector>& InC
 			for ( int32 GrassVarietyIndex = 0; GrassVarietyIndex < GrassVarieties.Num(); GrassVarietyIndex++ )
 			{
 				FChunkGrassMeshComponentData& GrassInstanceComponent = LandscapeLayerComponents[ GrassVarietyIndex ];
+				// Skip updating grass data if it does not have a valid mesh
+				if (!GrassInstanceComponent.GrassVariety.GrassMesh)
+				{
+					continue;
+				}
+#if WITH_EDITOR
+				// Skip updating grass types that are still compiling their mesh. This can happen in editor frequently, especially for nanite meshes
+				if (GrassInstanceComponent.GrassVariety.GrassMesh->IsCompiling())
+				{
+					continue;
+				}
+#endif
 				if ( !IsValid( GrassInstanceComponent.StaticMeshComponent ) )
 				{
 					GrassInstanceComponent.OwnerChunkCoord = Chunk->GetChunkCoord();
@@ -340,8 +354,11 @@ void UChunkLandscapeGrassSubsystem::CleanupStaleChunkGrass()
 			{
 				for ( FChunkGrassMeshComponentData& MeshComponentData : Pair.Value )
 				{
-					MeshComponentData.StaticMeshComponent->DestroyComponent();
-					MeshComponentData.StaticMeshComponent = nullptr;
+					if (MeshComponentData.StaticMeshComponent)
+					{
+						MeshComponentData.StaticMeshComponent->DestroyComponent();
+						MeshComponentData.StaticMeshComponent = nullptr;
+					}
 				}
 			}
 			ChunkLandscapeGrassData.ChunkUnloadedCounter->Increment();

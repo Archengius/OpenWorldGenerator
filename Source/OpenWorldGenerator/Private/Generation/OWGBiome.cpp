@@ -46,7 +46,7 @@ FBiomeLookupFunc UOWGBiomeTable::CreateBiomeLookup( TArray<UOWGNoiseIdentifier*>
 	if ( LargestNoiseThreshold < 1.0f )
 	{
 		UE_LOG( LogChunkGenerator, Warning, TEXT("Biome Table '%s' does not cover the full noise range for Noise '%s'. Only the [0;%.2f] range is covered, while the [0;1] range is expected!"),
-			*GetPathName(), *GetPathNameSafe( Noise ) );
+			*GetPathName(), *GetPathNameSafe( Noise ), LargestNoiseThreshold );
 	}
 	
 	return [NoiseIndex, BiomeIndices]( const float* PackedNoiseData ) -> int32

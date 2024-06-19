@@ -183,7 +183,7 @@ struct OPENWORLDGENERATOR_API FBoxTerraformingBrush : public FTerraformingBrush
 
 	/** Extents of the box this brush represents */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Box Brush" )
-	FVector2f Extents{};
+	FVector2f Extents{ForceInit};
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Box Brush" )
 	FTerraformingBrushFalloffSettings FalloffSettings;
@@ -202,7 +202,7 @@ struct OPENWORLDGENERATOR_API FEllipseTerraformingBrush : public FTerraformingBr
 
 	/** Extents of the ellipse this brush represents */
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Ellipse Brush" )
-	FVector2f Extents{};
+	FVector2f Extents{ForceInit};
 
 	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "Ellipse Brush" )
 	FTerraformingBrushFalloffSettings FalloffSettings;

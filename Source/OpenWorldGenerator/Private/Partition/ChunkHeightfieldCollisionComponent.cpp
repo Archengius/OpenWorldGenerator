@@ -36,6 +36,7 @@ public:
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
+	virtual bool CanBeOccluded() const override;
 	virtual uint32 GetMemoryFootprint() const override;
 	virtual SIZE_T GetTypeHash() const override;
 private:
@@ -48,7 +49,7 @@ private:
 
 UChunkHeightFieldCollisionComponent::UChunkHeightFieldCollisionComponent()
 {
-	UPrimitiveComponent::SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
+	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	SetGenerateOverlapEvents(false);
 
 	CastShadow = false;
@@ -142,7 +143,7 @@ void UChunkHeightFieldCollisionComponent::PartialUpdateOrCreateHeightField( int3
 
 void UChunkHeightFieldCollisionComponent::PartialUpdateCollisionData( int32 StartX, int32 StartY, int32 EndX, int32 EndY )
 {
-	if ( BodyInstance.IsValidBodyInstance() )
+	if ( BodyInstance.IsValidBodyInstance() && false )
 	{
 		// Take the write lock on the shape object associated with the height field
 		FPhysicsCommand::ExecuteWrite( BodyInstance.ActorHandle, [this, StartX, StartY, EndX, EndY]( const FPhysicsActorHandle& ActorHandle )
@@ -166,7 +167,7 @@ void UChunkHeightFieldCollisionComponent::PartialUpdateCollisionData( int32 Star
 				const Chaos::FShapesArray& Shapes = ActorHandle->GetGameThreadAPI().ShapesArray();
 				for (const TUniquePtr<Chaos::FPerShapeData>& ShapeData : Shapes )
 				{
-					ShapeData->SetMaterials( HeightFieldRef->UsedChaosMaterials );
+					ShapeData->AsShapeInstanceProxy()->SetMaterials( HeightFieldRef->UsedChaosMaterials );
 				}
 			}
 
@@ -254,21 +255,22 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 		
 		FActorCreationParams Params;
 		Params.InitialTM = GetComponentTransform();
-		Params.bQueryOnly = true;
+		Params.bQueryOnly = false;
 		Params.bStatic = true;
 		Params.Scene = GetWorld()->GetPhysicsScene();
+
 		FPhysicsActorHandle PhysHandle;
 		FPhysicsInterface::CreateActor( Params, PhysHandle );
 		Chaos::FRigidBodyHandle_External& Body_External = PhysHandle->GetGameThreadAPI();
 
 		Chaos::FShapesArray ShapeArray;
-		TArray<Chaos::FImplicitObjectPtr> Geometry;
+		Chaos::FImplicitObjectsArray Geometry;
 
 		// First add complex geometry
 		// We need to offset the height field by the half of the chunk because right now the chunk landscape geometry is not centered, and instead starts at the bottom of the chunk, going up
 		Chaos::FImplicitObjectPtr ChaosHeightFieldShapeData = MakeImplicitObjectPtr<Chaos::TImplicitObjectTransformed<Chaos::FReal, 3>>(
 			Chaos::FImplicitObjectPtr(HeightFieldRef->HeightField), Chaos::FRigidTransform3( FTransform( HeightFieldRef->LocalOffset ) ) );
-		TUniquePtr<Chaos::FPerShapeData> NewShape = Chaos::FShapeInstance::Make( ShapeArray.Num(), ChaosHeightFieldShapeData );
+		TUniquePtr<Chaos::FShapeInstanceProxy> NewShape = Chaos::FShapeInstanceProxy::Make( ShapeArray.Num(), ChaosHeightFieldShapeData );
 
 		// Setup filtering
 		FCollisionFilterData QueryFilterData, SimFilterData;
@@ -283,8 +285,8 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 		NewShape->SetSimData( SimFilterData );
 		NewShape->SetMaterials( HeightFieldRef->UsedChaosMaterials );
 
-		Geometry.Emplace( ChaosHeightFieldShapeData );
-		ShapeArray.Emplace( MoveTemp( NewShape ) );
+		Geometry.Emplace( MoveTemp(ChaosHeightFieldShapeData) );
+		ShapeArray.Emplace( MoveTemp(NewShape) );
 
 		// Push the shapes to the actor
 		// We always wrap it into the object union because the code in PartialUpdateCollisionData_AssumesLocked assumes it will always be the object union
@@ -294,7 +296,7 @@ void UChunkHeightFieldCollisionComponent::OnCreatePhysicsState()
 		for ( const TUniquePtr<Chaos::FPerShapeData>& Shape : ShapeArray)
 		{
 			Chaos::FRigidTransform3 WorldTransform = Chaos::FRigidTransform3( Body_External.X(), Body_External.R() );
-			Shape->UpdateShapeBounds( WorldTransform );
+			Shape->AsShapeInstanceProxy()->UpdateShapeBounds( WorldTransform );
 		}
 		Body_External.MergeShapesArray( MoveTemp(ShapeArray) );
 
@@ -350,7 +352,7 @@ FBoxSphereBounds UChunkHeightFieldCollisionComponent::CalcBounds( const FTransfo
 	FBoxSphereBounds NewBounds;
 	NewBounds.Origin = LocalToWorld.GetLocation() + FVector( 0.0f, 0.0f, FChunkCoord::ChunkSizeWorldUnits / 2.0f );
 	NewBounds.BoxExtent = FVector( FChunkCoord::ChunkSizeWorldUnits );
-	NewBounds.SphereRadius = 0.f;
+	NewBounds.SphereRadius = NewBounds.BoxExtent.Size();
 	return NewBounds;
 }
 
@@ -520,7 +522,7 @@ void FChunkHeightFieldCollisionComponentSceneProxy::GetDynamicMeshElements(const
 	LocalToWorldNoScale.RemoveScaling();
 
 	const bool bDrawCollision = ViewFamily.EngineShowFlags.Collision && IsCollisionEnabled();
-
+	
 	if ( ( bDrawCollision || CVarDrawChunkLandscapeCollision.GetValueOnRenderThread() ) && AllowDebugViewmodes() && WireframeMaterialInstance.IsValid())
 	{
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
@@ -545,16 +547,21 @@ FPrimitiveViewRelevance FChunkHeightFieldCollisionComponentSceneProxy::GetViewRe
 	const bool bShowForCollision = View->Family->EngineShowFlags.Collision && IsCollisionEnabled();
 
 	FPrimitiveViewRelevance Result;
-	Result.bDrawRelevance = IsShown(View) || bShowForCollision;
+	Result.bDrawRelevance = IsShown(View) || bShowForCollision || CVarDrawChunkLandscapeCollision.GetValueOnRenderThread();
 	Result.bDynamicRelevance = true;
 	Result.bShadowRelevance = false;
 	Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);
 	return Result;
 }
 
+bool FChunkHeightFieldCollisionComponentSceneProxy::CanBeOccluded() const
+{
+	return false;
+}
+
 uint32 FChunkHeightFieldCollisionComponentSceneProxy::GetMemoryFootprint() const 
 {
-	return(sizeof(*this) + GetAllocatedSize());
+	return sizeof(*this) + GetAllocatedSize();
 }
 
 SIZE_T FChunkHeightFieldCollisionComponentSceneProxy::GetTypeHash() const

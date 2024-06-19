@@ -15,6 +15,8 @@
 #include "Rendering/ChunkTextureManager.h"
 #include "UObject/Package.h"
 
+DECLARE_CYCLE_STAT(TEXT("Open World Generator Tick"), STAT_OpenWorldGeneratorTick, STATGROUP_KismetCompiler);
+
 UOpenWorldGeneratorSubsystem::UOpenWorldGeneratorSubsystem()
 {
 	TextureManager = CreateDefaultSubobject<UChunkTextureManager>( TEXT("ChunkTextureManager") );
@@ -29,19 +31,16 @@ UOpenWorldGeneratorSubsystem* UOpenWorldGeneratorSubsystem::Get( const UObject* 
 	return nullptr;
 }
 
-void UOpenWorldGeneratorSubsystem::GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const
+void UOpenWorldGeneratorSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
-	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
-
-	DOREPLIFETIME( ThisClass, WorldGeneratorDefinition );
-	DOREPLIFETIME( ThisClass, WorldSeed );
-}
-
-void UOpenWorldGeneratorSubsystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
-
-	IInterface_OWGGameMode* GameMode = CastChecked<IInterface_OWGGameMode>(GetWorld()->GetAuthGameMode());
+	Super::OnWorldBeginPlay(InWorld);
+	
+	// Do not initialize if game mode does not implement the OWG interface, or game mode tells us to not initialize
+	IInterface_OWGGameMode* GameMode = Cast<IInterface_OWGGameMode>(GetWorld()->GetAuthGameMode());
+	if (GameMode == nullptr || !GameMode->ShouldInitializeOWG())
+	{
+		return;
+	}
 	
 	FOWGSaveGameData LoadedSaveGameData;
 	if (!GameMode->GetOWGSaveGameData(LoadedSaveGameData))
@@ -91,13 +90,12 @@ void UOpenWorldGeneratorSubsystem::Initialize(FSubsystemCollectionBase& Collecti
 	{
 		ServerChunkManager->SetRegionFolderPath(GameMode->GetOWGSaveGameRegionFolderPath());
 	}
-}
 
-void UOpenWorldGeneratorSubsystem::OnWorldBeginPlay(UWorld& InWorld)
-{
-	Super::OnWorldBeginPlay(InWorld);
-	
-	ChunkManager->BeginPlay();
+	// Dispatch BeginPlay now
+	if (ChunkManager)
+	{
+		ChunkManager->BeginPlay();
+	}
 }
 
 bool UOpenWorldGeneratorSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
@@ -105,11 +103,9 @@ bool UOpenWorldGeneratorSubsystem::DoesSupportWorldType(const EWorldType::Type W
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
 }
 
-bool UOpenWorldGeneratorSubsystem::ShouldCreateSubsystem(UObject* Outer) const
+TStatId UOpenWorldGeneratorSubsystem::GetStatId() const
 {
-	UWorld* World = CastChecked<UWorld>(Outer);
-	return Super::ShouldCreateSubsystem(Outer) && World->GetAuthGameMode() &&
-		World->GetAuthGameMode()->Implements<UInterface_OWGGameMode>();
+	return GET_STATID(STAT_OpenWorldGeneratorTick);
 }
 
 UOWGWorldGeneratorConfiguration* UOpenWorldGeneratorSubsystem::LoadWorldGeneratorPackageFromShortName( const FString& InWorldGeneratorName )
@@ -149,8 +145,14 @@ void UOpenWorldGeneratorSubsystem::Deinitialize()
 {
 	Super::Deinitialize();
 
-	ChunkManager->Deinitialize();
-	TextureManager->ReleasePooledTextures();
+	if (ChunkManager)
+	{
+		ChunkManager->Deinitialize();
+	}
+	if (TextureManager)
+	{
+		TextureManager->ReleasePooledTextures();
+	}
 }
 
 void UOpenWorldGeneratorSubsystem::Tick( float DeltaTime )

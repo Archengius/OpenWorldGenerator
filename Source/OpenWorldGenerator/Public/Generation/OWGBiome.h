@@ -119,7 +119,7 @@ static constexpr FBiomePaletteIndex BIOME_PALETTE_INDEX_NONE = static_cast<FBiom
 class OPENWORLDGENERATOR_API FChunkBiomePalette
 {
 	/** Mapping of the biome to it's local ID in the chunk biome map */
-	TArray<UOWGBiome*> BiomeIndexMappings;
+	TArray<TObjectPtr<UOWGBiome>> BiomeIndexMappings;
 public:
 	FChunkBiomePalette() = default;
 	explicit FChunkBiomePalette( const TArray<UOWGBiome*>& InBiomeMappings );

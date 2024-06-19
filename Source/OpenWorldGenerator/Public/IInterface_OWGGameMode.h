@@ -47,7 +47,9 @@ class OPENWORLDGENERATOR_API IInterface_OWGGameMode
 public:
 	/** Called by Open World Generator when no save game data is available, to populate the new OWG world settings */
 	virtual void ModifyNewOWGWorldParameters(FOWGNewWorldCreationData& NewWorldCreationData) {}
-
+	/** Called by the OWG during initialization. Returning true will disable OWG for this world */
+	virtual bool ShouldInitializeOWG() const { return true; }
+	
 	/** Retrieves OWG save game data loaded for this world. Return false if no save game was loaded */
 	virtual bool GetOWGSaveGameData(FOWGSaveGameData& OutLoadedData) const = 0;
 	/** Updates OWG save game data for this world. Data should be returned by the call to GetOWGSaveGameData and persist across world restarts */

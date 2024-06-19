@@ -24,13 +24,11 @@ public:
 	static UOpenWorldGeneratorSubsystem* Get( const UObject* WorldContext );
 	
 	// Begin AActor interface
-	virtual void GetLifetimeReplicatedProps( TArray<FLifetimeProperty>& OutLifetimeProps ) const override;
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void OnWorldBeginPlay(UWorld& InWorld) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void Deinitialize() override;
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
-	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
+	virtual TStatId GetStatId() const override;
 	// End AActor interface
 	
 	/** Returns the chunk manager for this world */
